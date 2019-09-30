@@ -29,7 +29,7 @@ Parameters:
  SourceObjectKey:
   Description: 'S3 source artifact'
   Type: String
-  Default: sudusan/slack-cicd-demo/sudusan_slack-cicd-demo.zip
+  Default: sudusan/slack-cicd-demo/master/sudusan_slack-cicd-demo.zip
 
  ApplicationName:
   Description: 'Name of application'
@@ -58,24 +58,12 @@ Parameters:
  SlackChannel:
     Description: Slack Channel where approvals needs to be sent
     Type: String
-    Default: des_autoresults_cicd
  SlackVerifToken:
     Description: slack verification token of the app, store and encrypt in parameter store, It should be of form {{resolve:ssm-secure:<key-name>:<version>}}'
     Type: String
-    Default: pZyo0T8Vksqbvxi7uQeJukHS
  SlackApprovalMembers:
     Description: List of AD account of the member who can perform the slack approval for CICD.
-    Type: String
-    Default: sanksu   
- NotificationsSNSTopic:
-    Description: ARN of the SNS topic that will be used for notifications on the pipeline (if not specified a new one will be created).
-    Type: String
-    Default: ''
- AllowedIps:
-    Default: 0.0.0.0/0
-    Description: gitpull method only. Comma seperated list of IP CIDR blocks for source
-      IP authentication. The Autodesk external IP range is provided as default.
-    Type: String   
+    Type: String      
  ApiSecret:
     Default: ''
     Description: 'gitpull method only. WebHook Secrets for use with GitHub Enterprise
@@ -83,7 +71,15 @@ Parameters:
       contain: , \ "'
     NoEcho: 'true'
     Type: String
+ AllowedIps:
+    Default: 0.0.0.0/0
+    Description: gitpull method only. Comma seperated list of IP CIDR blocks for source
+      IP authentication. The Autodesk external IP range is provided as default.
+    Type: String
   
+Conditions:
+  UseAllowedIps: !Not [!Equals [ !Ref AllowedIps, '']]
+  UseApiSecret: !Not [!Equals [ !Ref ApiSecret, '']]
 Resources:
   # Sns topic to subscribe to approval request lambda function
   ConfigTable:
@@ -754,8 +750,16 @@ Resources:
         Ref: WebHookApi
       StageName: Prod
       Variables:
-        allowedips: Ref: AllowedIps
-        apisecrets:Ref: ApiSecret
+        allowedips:
+          Fn::If:
+          - UseAllowedIps
+          - Ref: AllowedIps
+          - Ref: AWS::NoValue
+        apisecrets:
+          Fn::If:
+          - UseApiSecret
+          - Ref: ApiSecret
+          - Ref: AWS::NoValue
         outputbucket:
           Ref: OutputBucket
     Type: AWS::ApiGateway::Stage
