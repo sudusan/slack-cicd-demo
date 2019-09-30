@@ -1,0 +1,14 @@
+{
+    "Parameters": {
+        "ApplicationName": "slack-cicd-demo",
+        "InstanceType": "t2.small",
+        "EC2KeyName": "isen1-use1-kp",
+        "DBInstanceType": "db.t3.medium",
+        "RDSClusterName": "delwiki-cluster",
+        "DBName": "MyDB",
+        "DBRootPassword": "slackroot",
+        "DBUser": "slackuser",
+        "DBPassword": "slack123",
+        "SSHLocation": "0.0.0.0/0",
+    }
+}
