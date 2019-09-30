@@ -9,6 +9,6 @@
         "DBRootPassword": "slackroot",
         "DBUser": "slackuser",
         "DBPassword": "slack123",
-        "SSHLocation": "0.0.0.0/0",
+        "SSHLocation": "0.0.0.0/0"
     }
 }

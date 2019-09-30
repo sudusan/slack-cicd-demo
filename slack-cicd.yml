@@ -1316,18 +1316,16 @@ Resources:
             Version: "1"
             Provider: CloudFormation
           Configuration:
-            StackName: !Join [ '-', [ !Ref ApplicationName, !Ref EnvironmentClass, 'Stack' ] ]
+            StackName: !Join [ '-', [ !Ref ApplicationName, 'STG-Stack' ] ]
             ActionMode: CREATE_UPDATE
             Capabilities: CAPABILITY_NAMED_IAM
             RoleArn: !GetAtt CodePipelineServiceRole.Arn
             TemplateConfiguration: SourceOutput::IAC/parameters.json
             TemplatePath: SourceOutput::IAC/application-stack.yml
-          RunOrder: 2
-        
+          RunOrder: 3
       ArtifactStore:
         Type: S3
-        Location: !Ref CodePipelineArtifactStoreBucket    
-
+        Location: !Ref CodePipelineArtifactStoreBucket
 
   CodeBuildPreDeployTest:
     Type: AWS::CodeBuild::Project
