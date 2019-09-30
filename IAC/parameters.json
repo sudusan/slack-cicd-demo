@@ -1,9 +1,7 @@
 {
     "Parameters": {
-        "ApplicationName": "slack-cicd-demo",
         "InstanceType": "t2.small",
         "KeyName": "isen1-use1-kp",
-        "DBInstanceType": "db.t3.medium",
         "DBName": "MyDB",
         "DBRootPassword": "slackroot",
         "DBUser": "slackuser",
