@@ -1304,17 +1304,17 @@ Resources:
             NotificationArn: !Ref CodePipelineSNSTopic
           RunOrder: 2
       -
-        Name: Deploy
+        Name: Execute
         Actions:
-        -
+        - 
           Name: CloudFormation
           InputArtifacts:
-            - Name: SourceOutput  
+            - Name: SourceOutput
           ActionTypeId:
             Category: Deploy
             Owner: AWS
-            Version: "1"
             Provider: CloudFormation
+            Version: '1'
           Configuration:
             StackName: !Join [ '-', [ !Ref ApplicationName, 'STG-Stack' ] ]
             ActionMode: CREATE_UPDATE
@@ -1323,6 +1323,21 @@ Resources:
             TemplateConfiguration: SourceOutput::IAC/parameters.json
             TemplatePath: SourceOutput::IAC/application-stack.yml
           RunOrder: 3
+      -
+        Name: Test
+        Actions:
+        -
+          Name: CodeBuild
+          InputArtifacts:
+            - Name: SourceOutput  
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: "1"
+            Provider: CodeBuild
+          Configuration:
+            ProjectName: !Ref CodeBuildPostDeployTest
+          RunOrder: 7
       ArtifactStore:
         Type: S3
         Location: !Ref CodePipelineArtifactStoreBucket
