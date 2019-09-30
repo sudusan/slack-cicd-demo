@@ -70,11 +70,7 @@ Parameters:
     Type: List<AWS::EC2::Subnet::Id>
  VpcId:
     Description: VPC Id
-    Type: AWS::EC2::VPC::Id
- ChangeSetName:
-  Description: 'Name of application'
-  Type: String
-  Default: delwiki-changeset    
+    Type: AWS::EC2::VPC::Id    
 Conditions:
   CreateNewSNSTopic: !Equals [!Ref NotificationsSNSTopic, '']
   UseAllowedIps: !Not [!Equals [ !Ref AllowedIps, '']]
@@ -734,7 +730,6 @@ Resources:
           SLACK_WEBHOOK_URL: !Ref 'SlackWebhookUrl'
           SLACK_CHANNEL: !Ref 'SlackChannel'
           STACK_NAME: !Join [ '-', [ !Ref ApplicationName, 'Stack' ] ]
-          CHANGESET_NAME: !Ref 'ChangeSetName'
       #VpcConfig: #Specify for uploading within specific VPCs
       Code:
         ZipFile: |
