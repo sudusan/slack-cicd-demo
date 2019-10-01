@@ -390,7 +390,7 @@ Resources:
   MyS3Bucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      AccessControl: '{{resolve:secretsmanager:slacktoken}}'
+      AccessControl: Private
   WebServerInstance:
     Type: 'AWS::EC2::Instance'
     Metadata:
@@ -644,6 +644,9 @@ Resources:
       SecurityGroups:
         - !Ref WebServerSecurityGroup
       KeyName: !Ref KeyName
+      Tags:
+        - Key: SlackToken
+          Value: '{{resolve:secretsmanager:slacktoken}}'
       UserData: !Base64 
         'Fn::Join':
           - ''
