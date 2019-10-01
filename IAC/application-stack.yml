@@ -387,7 +387,10 @@ Mappings:
       HVM64: ami-0f7937761741dc640
       HVMG2: NOT_SUPPORTED
 Resources:
-  
+  MyS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      AccessControl: '{{resolve:secretsmanager:slacktoken}}'
   WebServerInstance:
     Type: 'AWS::EC2::Instance'
     Metadata:
