@@ -645,8 +645,6 @@ Resources:
         - !Ref WebServerSecurityGroup
       KeyName: !Ref KeyName
       Tags:
-        - Key: SlackToken
-          Value: '{{resolve:secretsmanager:slacktoken:1}}'
         - Key: SSMToken
           Value: '{{resolve:ssm:mytoken:1}}'
       UserData: !Base64 
