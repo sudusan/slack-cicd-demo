@@ -648,7 +648,7 @@ Resources:
         - Key: SlackToken
           Value: '{{resolve:secretsmanager:slacktoken:1}}'
         - Key: SSMToken
-          Value: '{{resolve:ssm:ssmtoken:1}}'
+          Value: '{{resolve:ssm:mytoken:1}}'
       UserData: !Base64 
         'Fn::Join':
           - ''
