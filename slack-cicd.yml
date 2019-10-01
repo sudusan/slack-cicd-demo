@@ -67,7 +67,7 @@ Parameters:
  SlackApprovalMembers:
     Description: List of AD account of the member who can perform the slack approval for CICD.
     Type: String
-    Default: ''      
+    Default: 'mihira'      
  ApiSecret:
     Default: ''
     Description: 'gitpull method only. WebHook Secrets for use with GitHub Enterprise
