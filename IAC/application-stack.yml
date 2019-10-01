@@ -647,6 +647,8 @@ Resources:
       Tags:
         - Key: SSMToken
           Value: '{{resolve:ssm:mytoken:1}}'
+        - Key: SSMToken
+          Value: '{{resolve:ssm-secure:mysecuretoken:1}}'
       UserData: !Base64 
         'Fn::Join':
           - ''
