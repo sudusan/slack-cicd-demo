@@ -386,6 +386,10 @@ Mappings:
       HVM64: ami-0f7937761741dc640
       HVMG2: NOT_SUPPORTED
 Resources:
+  DBP:
+    Type: AWS::CloudFormation::CustomResource
+    Properties: 
+      DBPW: '{{resolve:secretsmanager:slacktoken}}'
   WebServerInstance:
     Type: 'AWS::EC2::Instance'
     Metadata:
@@ -692,3 +696,6 @@ Outputs:
         - !GetAtt 
           - WebServerInstance
           - PublicDnsName
+  SlackToken:
+    Description: the slack token
+    Value: !GetAtt DBP.DBPW
