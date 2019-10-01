@@ -55,15 +55,19 @@ Parameters:
  SlackWebhookUrl:
     Description: Incoming Webhook url for slack after you create your app, store and encrypt in parameter store, It should be of form {{resolve:ssm-secure:<key-name>:<version>}}'
     Type: String
+    Default: https://hooks.slack.com/services/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
  SlackChannel:
     Description: Slack Channel where approvals needs to be sent
     Type: String
+    Default: cicd-approval
  SlackVerifToken:
     Description: slack verification token of the app, store and encrypt in parameter store, It should be of form {{resolve:ssm-secure:<key-name>:<version>}}'
     Type: String
+    Default: DlwddfTisv7rnsB8sFVzREoo
  SlackApprovalMembers:
     Description: List of AD account of the member who can perform the slack approval for CICD.
-    Type: String      
+    Type: String
+    Default: ''      
  ApiSecret:
     Default: ''
     Description: 'gitpull method only. WebHook Secrets for use with GitHub Enterprise
@@ -1473,6 +1477,16 @@ Outputs:
         - .amazonaws.com/
         - Ref: WebHookApiProdStage
         - /gitpull
+  SlackHookApi:
+    Value:
+      Fn::Join:
+      - ''
+      - - ' https://'
+        - Ref: InteractiveMessageApi
+        - .execute-api.
+        - Ref: AWS::Region
+        - .amazonaws.com/
+        - /promote/interactivemessage
   OutputBucketName:
     Value:
       Ref: OutputBucket
