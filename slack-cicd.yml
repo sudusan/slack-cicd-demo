@@ -1269,6 +1269,7 @@ Resources:
             - sqs:*
             - ecs:*
             - route53:*
+            - secretsmanager:*
             Resource: '*'
   AppPipeline:
     Type: AWS::CodePipeline::Pipeline

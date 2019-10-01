@@ -697,3 +697,6 @@ Outputs:
         - !GetAtt 
           - WebServerInstance
           - PublicDnsName
+  MyS3BucketName:
+    Value:
+      Ref: MyS3Bucket
