@@ -58,4 +58,4 @@ Resources:
           Value: !Ref EnvironmentClass    
         - Key: ApplicationName
           Value: !Ref ApplicationName  
-      TemplateURL: !Sub https://s3.amazonaws.com/${NestedTemplateBucket}/IAC/nested-templates/rds-mysql.yml 
+      TemplateURL: !Sub https://s3.amazonaws.com/${NestedTemplateBucket}/IAC/rds-mysql.yml 
