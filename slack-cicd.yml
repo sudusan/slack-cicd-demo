@@ -42,32 +42,7 @@ Parameters:
   AllowedValues:
       - 'PRD'
       - 'STG'
- PreDeployBuildSpec:
-  Description: 'Name of the buildspec file for pre-deployment testing'
-  Type: String
-  Default: buildspec.yml
- PostDeployBuildSpec:
-  Description: 'Name of the buildspec file for post-deployment testing'
-  Type: String
-  Default: testspec.yml
- 
-
- SlackWebhookUrl:
-    Description: Incoming Webhook url for slack after you create your app, store and encrypt in parameter store, It should be of form {{resolve:ssm-secure:<key-name>:<version>}}'
-    Type: String
-    Default: https://hooks.slack.com/services/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
- SlackChannel:
-    Description: Slack Channel where approvals needs to be sent
-    Type: String
-    Default: cicd-approval
- SlackVerifToken:
-    Description: slack verification token of the app, store and encrypt in parameter store, It should be of form {{resolve:ssm-secure:<key-name>:<version>}}'
-    Type: String
-    Default: DlwddfTisv7rnsB8sFVzREoo
- SlackApprovalMembers:
-    Description: List of AD account of the member who can perform the slack approval for CICD.
-    Type: String
-    Default: 'mihira'      
+       
  ApiSecret:
     Default: ''
     Description: 'gitpull method only. WebHook Secrets for use with GitHub Enterprise
@@ -213,6 +188,10 @@ Resources:
             - '        cfnresponse.send(event, context, status, {}, None)'
             - ''
   KeyBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      Tags: []
+  NestedTemplateBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
       Tags: []
@@ -767,71 +746,12 @@ Resources:
         outputbucket:
           Ref: OutputBucket
     Type: AWS::ApiGateway::Stage
-  
-
-  CodePipelineSNSTopic:
-    Type: 'AWS::SNS::Topic'
-    Properties:
-      Subscription:
-        - Endpoint: !GetAtt 'ApprovalRequesterFunction.Arn'
-          Protocol: lambda
-
-  pipelinesevent:
-    Type: 'AWS::SNS::Topic'
-    Properties:
-      Subscription:
-        - Endpoint: !GetAtt 'Codepipelinestatusfunction.Arn'
-          Protocol: lambda
-
-  pipelineseventrule:    
-    DependsOn: PipelineSNSTopicPolicy
-    Type: AWS::Events::Rule
-    Properties: 
-      EventPattern: 
-        source: 
-          - "aws.codepipeline"
-        detail-type: 
-          - "CodePipeline Pipeline Execution State Change"
-        detail:
-          state:
-            - "STARTED"
-            - "SUCCEEDED"
-            - "FAILED"
-      State: "ENABLED"            
-      Targets: 
-        - 
-          Arn: 
-            Ref: "pipelinesevent" 
-          Id: "PipelineNotificationTopic"
-          InputTransformer:
-            InputPathsMap:
-              Pipeline: "$.detail.pipeline"
-              Status: "$.detail.state"
-            InputTemplate: !Sub '":construction_worker: _*The pipeline <Pipeline> has changed state to <Status>*_ :construction_worker:"'
-
-  PipelineSNSTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
-    Properties:
-      PolicyDocument:
-        Id: MyTopicPolicy
-        Version: '2012-10-17'
-        Statement:
-        - Sid: TrustCWEToPublishEventsToMyTopic
-          Effect: Allow
-          Principal:
-            Service: "events.amazonaws.com"
-          Action: sns:Publish
-          Resource: !Ref pipelinesevent
-      Topics:
-      - !Ref pipelinesevent  
-
-
-  # Deployment Approval Requester lambda function
-  ApprovalRequesterFunction:
+ 
+  UnzipCfnTemplate:
     Type: AWS::Lambda::Function
     Properties:
-      Description: Function to send request for approval or deny to slack.
-      Handler: index.handler
+      Description: This unzips the file into the same bucket.
+      Handler: index.lambda_handler
       Role: !GetAtt LambdaServiceRole.Arn
       Runtime: python3.7
       Tags:
@@ -839,222 +759,44 @@ Resources:
           Value: !Ref ApplicationName
         - Key: EnvironmentClass
           Value: !Ref EnvironmentClass
-      Timeout: 300
+      Timeout: 60
       Environment:
         Variables:
-          SLACK_WEBHOOK_URL: !Ref 'SlackWebhookUrl'
-          SLACK_CHANNEL: !Ref 'SlackChannel'
-          STACK_NAME: !Join [ '-', [ !Ref ApplicationName, !Ref EnvironmentClass, 'Stack' ] ]
-      #VpcConfig: #Specify for uploading within specific VPCs
+          TEMPLATE_BUCKET: !Ref 'OutputBucket'
+          TEMPLATE_BUCKET_KEY: !Ref 'SourceObjectKey'
+          TARGET_TEMPLATE_BUCKET: !Ref 'NestedTemplateBucket'
       Code:
         ZipFile: |
-          import os
-          import json
-          import logging
-          import time
-          from urllib.request import Request, urlopen
-          logger = logging.getLogger()
-          logger.setLevel(logging.INFO)
-          def handler(event, context):
-          # encrypted parameter in Parameter Store.
-              SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
-              SLACK_CHANNEL = os.environ['SLACK_CHANNEL']
-              STACK_NAME = os.environ['STACK_NAME']
-              logger.info("Event: " + str(event))
-              message = json.loads(event['Records'][0]['Sns']['Message'])
-              logger.info("Message: " + str(message))
-              try:
-                  data = json.loads(json.dumps(message))
-                  token = data["approval"]["token"]
-                  codepipeline_name = data["approval"]["pipelineName"]
-                  # format of slack message
-                  slack_message = {
-                      "channel": SLACK_CHANNEL,
-                      "text": "Ready to push your stack `"+STACK_NAME+"` to production?",
-                      "attachments": [
-                          {
-                              "text": "_Yes to promote and deploy your build_",
-                              "fallback": "You are unable to promote a build",
-                              "callback_id": "promote_approval",
-                              "color": "#3AA3E3",
-                              "attachment_type": "default",
-                              "actions": [
-                                  {
-                                      "name": "deployment",
-                                      "text": "Yes",
-                                      "style": "primary",
-                                      "type": "button",
-                                      "value": json.dumps({"approve": True, "codePipelineToken": token, "codePipelineName": codepipeline_name}),
-                                      "confirm": {
-                                          "title": "Are you sure?",
-                                          "text": "_This will promote and deploy your build to production_",
-                                          "ok_text": "Yes",
-                                          "dismiss_text": "No"
-                                      }
-                                  },
-                                  {
-                                      "name": "deployment",
-                                      "text": "No",
-                                      "type": "button",
-                                      "value": json.dumps({"approve": False, "codePipelineToken": token, "codePipelineName": codepipeline_name})
-                                  }
-                              ],
-                              "ts": time.time()
-                          }
-                      ]
-                  }
-                  #Post slack message with webhook
-                  req = Request(SLACK_WEBHOOK_URL, json.dumps(slack_message).encode('utf-8'))
-                  response = urlopen(req)
-                  response.read()
-                  return None
-              except Exception as e:
-                  return str(e)
-  # Permission to invoke lambda function from sns
-  ApprovalRequesterPermissionAuthorizerSns:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt 'ApprovalRequesterFunction.Arn'
-      Action: lambda:InvokeFunction
-      Principal: sns.amazonaws.com
-      SourceArn: !Ref CodePipelineSNSTopic
-
-  # Deployment response event function
-  ApprovalResponseFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Description: Function to capture response for approval or deny from slack
-      Handler: index.handler
-      Role: !GetAtt LambdaServiceRole.Arn
-      Runtime: python3.7
-      Tags:
-        - Key: ApplicationName
-          Value: !Ref ApplicationName
-        - Key: EnvironmentClass
-          Value: !Ref EnvironmentClass
-      Timeout: 300
-      Environment:
-        Variables:
-          SLACK_VERIFICATION_TOKEN: !Ref 'SlackVerifToken'
-          SLACK_USER_APPROVAL: !Ref 'SlackApprovalMembers'
-      #VpcConfig: #Specify for uploading within specific VPCs
-      Code:
-        ZipFile: |  
-          # This function is triggered via API Gateway when a user acts on the Slack interactive message sent by approval_requester.py
-          from urllib.parse import parse_qs
-          import json
-          import os
+          import urllib
+          import zipfile
           import boto3
-          import logging
-          logger = logging.getLogger()
-          logger.setLevel(logging.INFO)
-          def send_slack_message(action_details,flag):
-            if not flag:
-              return 
-            codepipeline_status = "Approved" if action_details["approve"] else "Rejected"
-            codepipeline_name = action_details["codePipelineName"]
-            token = action_details["codePipelineToken"]
-            #user = action_details["user"]
-            client = boto3.client('codepipeline')
-            
-            response_approval = client.put_approval_result(
-                        pipelineName=codepipeline_name,
-                        stageName='Approval',
-                        actionName='ApproveOrDeny',
-                        result={'summary':'','status':codepipeline_status},
-                        token=token)
-            return response_approval
-          #Triggered by API Gateway
-          #It kicks off a particular CodePipeline project
-          def handler(event, context):
-            SLACK_VERIFICATION_TOKEN = os.environ['SLACK_VERIFICATION_TOKEN']
-            SLACK_USER_APPROVAL = os.environ['SLACK_USER_APPROVAL'].split(',')
-            logger.info("Event: " + str(event))
+          import io
+          import os
+          print('Loading function')
+          s3 = boto3.client('s3')
+          bucket = os.environ['TEMPLATE_BUCKET']
+          targetBucket = os.environ['TARGET_TEMPLATE_BUCKET']
+          def lambda_handler(event, context):
+          #key = urllib.unquote_plus(event['Records'][0]['s3']['object']['key'].encode('utf8'))
+            key = os.environ['TEMPLATE_BUCKET_KEY']
+            codepipeline = boto3.client('codepipeline')
             try:
-              print('inside')
-              body = parse_qs(event['body'])
-              payload = json.loads(body['payload'][0])
-              flag = False
-              
-              # Validate Slack token
-              
-              if SLACK_VERIFICATION_TOKEN == payload['token']:
-                user = payload["user"]["name"]
-                print(payload)
-                if user in SLACK_USER_APPROVAL:
-                  flag = True
-                try:send_slack_message(json.loads(payload['actions'][0]['value']),flag)
-                except Exception as err:
-                  print(err)
-                  
-                # This will replace the interactive message with a simple text response.
-              print(flag)
-              if flag:
-                return  {
-                  "isBase64Encoded": "false",
-                  "statusCode": 200,
-                  "body": "{\"text\": \"The approval has been processed\"}"
-                }
-              else:
-                return  {
-                  "isBase64Encoded": "false",
-                  "statusCode": 403,
-                  "body": "{\"error\": \"This request does not include a valid verification token.\"}"
-                }
-            except Exception as e:
-              return {
-                "isBase64Encoded": "false",
-                "statusCode": 422,
-                "body": str(e.__class__.__name__)
-              }
-  # Permission to invoke lambda function from API gateway
-  ApprovalResponsePermissionAuthorizerSns:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt 'ApprovalResponseFunction.Arn'
-      Action: lambda:InvokeFunction
-      Principal: apigateway.amazonaws.com
-
-  InteractiveMessageApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      StageName: promote
-      DefinitionBody:
-        swagger: "2.0"
-        info:
-          version: "1.0"
-          title: "CICD"
-          contact:
-            email: "sudhakar.sankaran@autodesk.com"
-          license:
-            name: "Apache 2.0"
-            url: "http://www.apache.org/licenses/LICENSE-2.0.html"
-        basePath: "/prd"
-        schemes:
-        - "https"
-        paths:
-          /interactivemessage:
-            post:
-              produces:
-              - "application/json"
-              responses:
-                "200":
-                  description: "200 response"
-                  schema:
-                    $ref: "#/definitions/Empty"
-              x-amazon-apigateway-integration:
-                uri:
-                  Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApprovalResponseFunction.Arn}/invocations"
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: "when_no_match"
-                httpMethod: "POST"
-                type: "aws_proxy"
-        definitions:
-          Empty:
-            type: "object"
-            title: "Empty Schema"                  
+              obj = s3.get_object(Bucket=bucket, Key=key)
+              putObjects = []
+              with io.BytesIO(obj["Body"].read()) as tf:
+              # rewind the file
+                tf.seek(0)
+                # Read the file as a zipfile and process the members
+                with zipfile.ZipFile(tf, mode='r') as zipf:
+                  for file in zipf.infolist():
+                    fileName = file.filename
+                    putFile = s3.put_object(Bucket=targetBucket, Key=fileName, Body=zipf.read(file))
+                    putObjects.append(putFile)
+                    print(putFile)
+                    print('success')
+              return codepipeline.put_job_success_result(jobId=event["CodePipeline.job"]["id"], currentRevision={'revision':'1', 'changeIdentifier':'1'})
+            except:
+              return codepipeline.put_job_failure_result(jobId=event["CodePipeline.job"]["id"], failureDetails={'type':'JobFailed','message':'This code failed to complete successfully'})
 
   # Lambda execution role
   LambdaExecRole:
@@ -1297,6 +1039,21 @@ Resources:
             PollForSourceChanges: true
           RunOrder: 1
       -
+        Name: Unzip
+        Actions:
+        -
+          Name: UnzipCFN
+          InputArtifacts:
+            - Name: SourceOutput   
+          ActionTypeId:
+            Category: Invoke
+            Owner: AWS
+            Version: "1"
+            Provider: Lambda
+          Configuration:
+            FunctionName: !Ref UnzipCfnTemplate
+          RunOrder: 2
+      -
         Name: Approval
         Actions:
         - 
@@ -1306,9 +1063,7 @@ Resources:
             Owner: AWS
             Provider: Manual
             Version: '1'
-          Configuration:
-            NotificationArn: !Ref CodePipelineSNSTopic
-          RunOrder: 2
+          RunOrder: 3
       -
         Name: Execute
         Actions:
@@ -1328,49 +1083,11 @@ Resources:
             RoleArn: !GetAtt CodePipelineServiceRole.Arn
             TemplateConfiguration: SourceOutput::IAC/parameters.json
             TemplatePath: SourceOutput::IAC/application-stack.yml
-          RunOrder: 3
-      -
-        Name: Test
-        Actions:
-        -
-          Name: CodeBuild
-          InputArtifacts:
-            - Name: SourceOutput  
-          ActionTypeId:
-            Category: Build
-            Owner: AWS
-            Version: "1"
-            Provider: CodeBuild
-          Configuration:
-            ProjectName: !Ref CodeBuildPostDeployTest
-          RunOrder: 7
+          RunOrder: 4
       ArtifactStore:
         Type: S3
         Location: !Ref CodePipelineArtifactStoreBucket
-
-  CodeBuildPreDeployTest:
-    Type: AWS::CodeBuild::Project
-    Properties: 
-      Artifacts:
-        Type: CODEPIPELINE
-      Environment: 
-        ComputeType: BUILD_GENERAL1_SMALL
-        Image: "aws/codebuild/python:3.7.1-1.7.0"
-        Type: LINUX_CONTAINER
-        #Environment Variables: #Use these to pass environment specific conditions, much like OS Variables
-      LogsConfig: 
-        CloudWatchLogs:
-          Status: ENABLED
-      ServiceRole: !GetAtt CodeBuildRole.Arn
-      Source:
-        BuildSpec: !Ref PreDeployBuildSpec
-        Type: CODEPIPELINE
-      Tags: 
-        - Key: ApplicationName
-          Value: !Ref ApplicationName
-        - Key: EnvironmentClass
-          Value: !Ref EnvironmentClass 
-      #VPCConfig: #Implement this in order to specify and secure build workloads into private subnets.     
+    
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1382,92 +1099,10 @@ Resources:
             Service: codebuild.amazonaws.com
           Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AdministratorAccess #Lock this down as needed.
-  CodeBuildPostDeployTest:
-    Type: AWS::CodeBuild::Project
-    Properties: 
-      Artifacts:
-        Type: CODEPIPELINE
-      Environment: 
-        ComputeType: BUILD_GENERAL1_SMALL
-        Image: "aws/codebuild/python:3.7.1-1.7.0"
-        Type: LINUX_CONTAINER
-        #Environment Variables: #Use these to pass environment specific conditions, much like OS Variables
-      LogsConfig: 
-        CloudWatchLogs:
-          Status: ENABLED
-      ServiceRole: !GetAtt CodeBuildRole.Arn
-      Source:
-        BuildSpec: !Ref PostDeployBuildSpec
-        Type: CODEPIPELINE
-      Tags: 
-        - Key: ApplicationName
-          Value: !Ref ApplicationName
-        - Key: EnvironmentClass
-          Value: !Ref EnvironmentClass 
-      #VPCConfig: #Implement this in order to specify and secure build workloads into private subnets.     
+        - arn:aws:iam::aws:policy/AdministratorAccess #Lock this down as needed.     
   
-  Codepipelinestatusfunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Description: Function to send Success or failure to pipeline to slack.
-      Handler: index.handler
-      Role: !GetAtt LambdaServiceRole.Arn
-      Runtime: python2.7
-      Tags:
-        - Key: ApplicationName
-          Value: !Ref ApplicationName
-        - Key: EnvironmentClass
-          Value: !Ref EnvironmentClass
-      Timeout: 300
-      Environment:
-        Variables:
-          SLACK_WEBHOOK_URL: !Ref 'SlackWebhookUrl'
-          SLACK_CHANNEL: !Ref 'SlackChannel'
-          STACK_NAME: !Join [ '-', [ !Ref ApplicationName, !Ref EnvironmentClass, 'Stack' ] ]
-      #VpcConfig: #Specify for uploading within specific VPCs
-      Code:
-        ZipFile: |
-          import json
-          import logging
-          import os
-          from urllib2 import Request, urlopen, URLError, HTTPError
-          # Read environment variables
-          SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
-          SLACK_CHANNEL = os.environ['SLACK_CHANNEL']
-          STACK_NAME = os.environ['STACK_NAME']
-          logger = logging.getLogger()
-          logger.setLevel(logging.INFO)
-          def handler(event, context):
-              logger.info("Event: " + str(event))
-              # Read message posted on SNS Topic
-              message = json.loads(event['Records'][0]['Sns']['Message'])
-              logger.info("Message: " + str(message))
-          # Construct a slack message
-              slack_message = {
-                  'channel': SLACK_CHANNEL,
-                  'text': "%s" % (message)
-              }
-          # Post message on SLACK_WEBHOOK_URL
-              req = Request(SLACK_WEBHOOK_URL, json.dumps(slack_message))
-              try:
-                  response = urlopen(req)
-                  response.read()
-                  logger.info("Message posted to %s", slack_message['channel'])
-              except HTTPError as e:
-                  logger.error("Request failed: %d %s", e.code, e.reason)
-              except URLError as e:
-                  logger.error("Server connection failed: %s", e.reason)   
-  CodepipelinestatusAuthorizerSns:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt 'Codepipelinestatusfunction.Arn'
-      Action: lambda:InvokeFunction
-      Principal: sns.amazonaws.com
-      SourceArn: !Ref pipelinesevent                
-
+    
 Outputs:
-
   GitPullWebHookApi:
     Value:
       Fn::Join:
@@ -1479,19 +1114,12 @@ Outputs:
         - .amazonaws.com/
         - Ref: WebHookApiProdStage
         - /gitpull
-  SlackHookApi:
-    Value:
-      Fn::Join:
-      - ''
-      - - ' https://'
-        - Ref: InteractiveMessageApi
-        - .execute-api.
-        - Ref: AWS::Region
-        - .amazonaws.com/
-        - /promote/interactivemessage
   OutputBucketName:
     Value:
       Ref: OutputBucket
+  NestedTemplateBucketName:
+    Value:
+      Ref: NestedTemplateBucket
   PublicSSHKey:
     Value:
       Ref: CreateSSHKey
