@@ -13,6 +13,8 @@ Parameters:
       - db.r5.16xlarge
     Description: The instance type to use for the database.
     Type: String
+  DatabasePasswordName:
+    Type: String
   RDSClusterName:
     Default: dbname-cluster
     Description: The RDS Cluster Name.
@@ -39,7 +41,7 @@ Parameters:
     ConstraintDescription: >-
       must begin with a letter and contain only alphanumeric characters. And,
       Read Replica name should not be same as DatabaseName
-  DatabasePassword:
+  DatabasePasswordKey:
     AllowedPattern: '^[a-zA-Z0-9\-\!\*\)\#//(]*$+'
     ConstraintDescription: must contain only alphanumeric characters & Special characters.
     Description: The database admin account password.
@@ -79,9 +81,9 @@ Metadata:
           - DatabaseNameP
           - DatabaseReadReplicaName
           - DatabaseUsername
-          - DatabasePassword
-          - DatabaseSubnetsß
-          - DatabaseBackupRetentionPeriod
+          - DatabasePasswordKey
+          - DatabaseSubnets
+          - DatabasePasswordName
     ParameterLabels:
       DatabaseInstanceType:
         default: Database Instance Type
@@ -91,14 +93,14 @@ Metadata:
         default: Database Instance Name
       DatabaseReadReplicaName:
         default: Database Read Replica Name
-      DatabasePassword:
-        default: Database Password
+      DatabasePasswordKey:
+        default: Database Password Key
       DatabaseUsername:
         default: Database Username
-      DatabaseBackupRetentionPeriod:
-        default: Database Backup Retention Period
       DatabaseSubnets:
         default: Database Subnets
+      DatabasePasswordName:
+        default: Database Password Name
 Resources:
   RdsKey:
     Type: 'AWS::KMS::Key'
@@ -219,7 +221,7 @@ Resources:
       DBClusterIdentifier: !Ref RDSClusterName
       DatabaseName: !Ref DatabaseNameP
       MasterUsername: !Ref DatabaseUsername
-      MasterUserPassword: !Ref DatabasePassword
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabasePasswordName}:SecretString:${DatabasePasswordKey}}}'
       BackupRetentionPeriod: '1'
       PreferredBackupWindow: '09:00-10:00'
       PreferredMaintenanceWindow: 'sat:08:00-sat:08:30'

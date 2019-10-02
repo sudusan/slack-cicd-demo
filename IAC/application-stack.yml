@@ -6,6 +6,8 @@ Parameters:
   RDSClusterName:
     Type: String
     Default: "slack-cluster"
+  DatabasePasswordName:
+    Type: String
   DatabaseNameP:
     Type: String
     Default: "slackdb"
@@ -15,7 +17,7 @@ Parameters:
   DatabaseUsername:
     Type: String
     Default: "slackuser"
-  DatabasePassword:
+  DatabasePasswordKey:
     Type: String
   IAMAuthentication:
     Type: String
@@ -47,7 +49,7 @@ Resources:
         RDSClusterName: !Ref RDSClusterName
         DatabaseNameP: !Ref DatabaseNameP
         DatabaseReadReplicaName: !Ref DatabaseReadReplicaName
-        DatabasePassword: !Ref DatabasePassword
+        DatabasePasswordKey: !Ref DatabasePasswordKey
         DatabaseUsername: !Ref DatabaseUsername
         IAMAuthentication: !Ref IAMAuthentication
         VpcId: !Ref VpcId
