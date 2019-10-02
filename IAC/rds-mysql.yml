@@ -42,12 +42,6 @@ Parameters:
       must begin with a letter and contain only alphanumeric characters. And,
       Read Replica name should not be same as DatabaseName
   DatabasePasswordKey:
-    AllowedPattern: '^[a-zA-Z0-9\-\!\*\)\#//(]*$+'
-    ConstraintDescription: must contain only alphanumeric characters & Special characters.
-    Description: The database admin account password.
-    MaxLength: '41'
-    MinLength: '8'
-    NoEcho: 'true'
     Type: String
   DatabaseUsername:
     Default: root
