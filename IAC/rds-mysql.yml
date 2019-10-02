@@ -119,7 +119,7 @@ Resources:
             Principal:
               AWS:
                 - >-
-                  arn:aws:iam::497877539434:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS
+                  arn:aws:iam::805262168568:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS
             Action:
               - 'kms:Create*'
               - 'kms:Describe*'
@@ -141,7 +141,7 @@ Resources:
             Principal:
               AWS:
                 - >-
-                  arn:aws:iam::497877539434:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS
+                  arn:aws:iam::805262168568:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS
             Action:
               - 'kms:Encrypt'
               - 'kms:Decrypt'
@@ -154,7 +154,7 @@ Resources:
             Principal:
               AWS:
                 - >-
-                  arn:aws:iam::497877539434:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS
+                  arn:aws:iam::805262168568:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS
             Action:
               - 'kms:CreateGrant'
               - 'kms:ListGrants'
