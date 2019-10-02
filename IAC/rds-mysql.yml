@@ -183,21 +183,6 @@ Resources:
           FromPort: 3306
           ToPort: 3306
           CidrIp: 0.0.0.0/0
-  RdsMonitoringRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      RoleName: ADSK-rds-monitoring-role
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Sid: ''
-            Effect: Allow
-            Principal:
-              Service: monitoring.rds.amazonaws.com
-            Action: 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole'
-      Path: /
   CustomDBParameterGroupAMS:
     Type: 'AWS::RDS::DBClusterParameterGroup'
     Properties:
@@ -247,10 +232,6 @@ Resources:
       CopyTagsToSnapshot: 'True'
       DeleteAutomatedBackups: 'False'
       PreferredMaintenanceWindow: 'sat:08:00-sat:08:30'
-      MonitoringInterval: 60
-      MonitoringRoleArn: !GetAtt 
-        - RdsMonitoringRole
-        - Arn
       Tags:
         - Key: Name
           Value: !Ref DatabaseNameP
@@ -265,10 +246,6 @@ Resources:
       PubliclyAccessible: 'False'
       CopyTagsToSnapshot: 'True'
       PreferredMaintenanceWindow: 'sat:08:00-sat:08:30'
-      MonitoringInterval: 60
-      MonitoringRoleArn: !GetAtt 
-        - RdsMonitoringRole
-        - Arn
   topicDBOpsEmail:
     Type: 'AWS::SNS::Topic'
     Properties:
