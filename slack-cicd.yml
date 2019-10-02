@@ -1013,6 +1013,7 @@ Resources:
             - route53:*
             - secretsmanager:*
             - ssm:*
+            - kms:*
             Resource: '*'
   AppPipeline:
     Type: AWS::CodePipeline::Pipeline
