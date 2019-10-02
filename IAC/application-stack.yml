@@ -50,6 +50,7 @@ Resources:
         DatabaseNameP: !Ref DatabaseNameP
         DatabaseReadReplicaName: !Ref DatabaseReadReplicaName
         DatabasePasswordKey: !Ref DatabasePasswordKey
+        DatabasePasswordName: !Ref DatabasePasswordName
         DatabaseUsername: !Ref DatabaseUsername
         IAMAuthentication: !Ref IAMAuthentication
         VpcId: !Ref VpcId
