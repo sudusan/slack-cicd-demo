@@ -48,9 +48,8 @@ Resources:
         DatabaseInstanceType: !Ref DBInstanceType
         RDSClusterName: !Ref RDSClusterName
         DatabaseNameP: !Ref DatabaseNameP
-        DatabaseReadReplicaName: !Ref DatabaseReadReplicaName
         DatabasePasswordKey: !Ref DatabasePasswordKey
-        DatabasePasswordName: !Ref DatabasePasswordName
+        SecretName: !Ref SecretName
         DatabaseUsername: !Ref DatabaseUsername
         IAMAuthentication: !Ref IAMAuthentication
         VpcId: !Ref VpcId
