@@ -11,9 +11,6 @@ Parameters:
   DatabaseNameP:
     Type: String
     Default: "slackdb"
-  DatabaseReadReplicaName:
-    Type: String
-    Default: "slack-rr"
   DatabaseUsername:
     Type: String
     Default: "slackuser"
