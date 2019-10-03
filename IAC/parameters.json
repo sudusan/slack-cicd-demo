@@ -2,7 +2,7 @@
     "Parameters": {
         "ApplicationName": "slack-prd",
         "EnvironmentClass": "PRD",
-        "NestedTemplateBucket": "",
+        "NestedTemplateBucket": "test-cicd-1-nestedtemplatebucket-jdbmalck192j",
         "VpcId": "vpc-bf1785c5",
         "DBSubNetIds": "subnet-1c317340,subnet-340c4d53",
         "DBInstanceType": "db.t3.medium",
