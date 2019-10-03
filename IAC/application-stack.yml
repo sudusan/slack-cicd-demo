@@ -6,7 +6,7 @@ Parameters:
   RDSClusterName:
     Type: String
     Default: "slack-cluster"
-  DatabasePasswordName:
+  SecretName:
     Type: String
   DatabaseNameP:
     Type: String

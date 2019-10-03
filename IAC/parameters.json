@@ -10,8 +10,8 @@
         "DatabaseNameP": "slackdb",
         "DatabaseReadReplicaName": "slack-rr",
         "DatabaseUsername": "slackuser",
-        "DatabasePasswordName": "slackdbpw",
-        "DatabasePasswordKey": "dbpwkey",
+        "SecretName": "myapp-prd",
+        "DatabasePasswordKey": "db-pw",
         "IAMAuthentication": "False"
     }
 }
